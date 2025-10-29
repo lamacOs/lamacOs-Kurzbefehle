@@ -205,11 +205,18 @@ setInterval(checkAdminExpiry, 1000);
 // helpers
 function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,10); }
 function escapeHtml(s=''){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function normalizeState(s){
+  if(!s) return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
+  if(!s.shortcuts) s.shortcuts = [];
+  if(!s.folders) s.folders = [];
+  if(!s.meta) s.meta = {lastUpdated:0, lastWriter:null};
+  return s;
+}
 function loadLocal(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
-    return JSON.parse(raw);
+    return normalizeState(JSON.parse(raw));
   }catch(e){
     console.warn('loadLocal error', e);
     return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
@@ -254,7 +261,7 @@ function initFirebaseAuthAndSync(){
           const cloudMeta = cloud.meta || { lastUpdated:0 };
           const localMeta = state.meta || { lastUpdated:0 };
           if(cloudMeta.lastUpdated > localMeta.lastUpdated){
-            state = cloud;
+            state = normalizeState(cloud);
             saveLocal();
             render();
             setSyncStatus('Synchronisiert (Cloud übernommen)');
@@ -270,7 +277,7 @@ function initFirebaseAuthAndSync(){
           if(cloudOnce){
             const cloudMeta = cloudOnce.meta || { lastUpdated:0 };
             if(cloudMeta.lastUpdated > (state.meta?.lastUpdated || 0)){
-              state = cloudOnce; saveLocal(); render(); setSyncStatus('Initial sync (Cloud übernommen)');
+              state = normalizeState(cloudOnce); saveLocal(); render(); setSyncStatus('Initial sync (Cloud übernommen)');
             } else if(cloudMeta.lastUpdated < (state.meta?.lastUpdated || 0)){
               pushStateToCloud(state).then(()=>setSyncStatus('Initial sync (Local gepusht)'));
             } else setSyncStatus('Sync ready');
@@ -327,6 +334,9 @@ document.addEventListener('click', (e)=>{
 
 // ===== Render UI =====
 function render(){
+  // ensure state is valid
+  state = normalizeState(state);
+
   // render shortcuts
   cardGrid.innerHTML = '';
   state.shortcuts.forEach(sc=>{
