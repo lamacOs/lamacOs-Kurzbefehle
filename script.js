@@ -17,8 +17,37 @@ const ADMIN_DURATION_MS = 30 * 60 * 1000;
 // Storage key
 const STORAGE_KEY = 'lamacos.shortcuts.v1';
 
-// === Username Setup ===
-// Prüfen, ob im localStorage schon eine User-ID gespeichert ist
+// === Helper Functions (must be defined before use) ===
+function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,10); }
+function escapeHtml(s=''){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function normalizeState(s){
+  if(!s) return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
+  if(!s.shortcuts) s.shortcuts = [];
+  if(!s.folders) s.folders = [];
+  if(!s.meta) s.meta = {lastUpdated:0, lastWriter:null};
+  return s;
+}
+
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
+    return normalizeState(JSON.parse(raw));
+  }catch(e){
+    console.warn('loadLocal error', e);
+    return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
+  }
+}
+
+// sha256 helper
+async function sha256hex(str){
+  const enc = new TextEncoder().encode(str||'');
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// === Global Variables ===
+// Username Setup
 let userId = localStorage.getItem("lamacosUserId");
 let currentUsername = '';
 
@@ -67,28 +96,6 @@ function checkAdminExpiry(){
 }
 setInterval(checkAdminExpiry, 1000);
 
-// helpers
-function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,10); }
-function escapeHtml(s=''){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function normalizeState(s){
-  if(!s) return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
-  if(!s.shortcuts) s.shortcuts = [];
-  if(!s.folders) s.folders = [];
-  if(!s.meta) s.meta = {lastUpdated:0, lastWriter:null};
-  return s;
-}
-
-function loadLocal(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
-    return normalizeState(JSON.parse(raw));
-  }catch(e){
-    console.warn('loadLocal error', e);
-    return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
-  }
-}
-
 function saveLocal(){
   state.meta = state.meta || {};
   state.meta.lastUpdated = Date.now();
@@ -96,12 +103,7 @@ function saveLocal(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-// sha256 helper
-async function sha256hex(str){
-  const enc = new TextEncoder().encode(str||'');
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+function setSyncStatus(txt){ if(syncStatusEl) syncStatusEl.textContent = txt; }
 
 // ===== User Authentication Setup =====
 function setupUserAuth() {
@@ -311,8 +313,6 @@ function pushStateToCloud(s){
     .then(()=>{ state.meta = toPush.meta; saveLocal(); setSyncStatus('Zuletzt synchronisiert: '+ new Date(state.meta.lastUpdated).toLocaleString()); })
     .catch(err=>{ console.warn('Push Fehler', err); setSyncStatus('Fehler beim Push'); });
 }
-
-function setSyncStatus(txt){ if(syncStatusEl) syncStatusEl.textContent = txt; }
 
 // ===== UI helpers =====
 function showDialog(html){
