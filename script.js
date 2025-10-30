@@ -114,11 +114,14 @@ function setupUserAuth() {
     userId = userId.toUpperCase(); // Macht es leichter zu lesen
     localStorage.setItem("lamacosUserId", userId);
     console.log("Neuer Code generiert:", userId);
+  } else {
+    console.log("Bestehender Code:", userId);
   }
 
   currentUsername = userId; // Code ist gleichzeitig der Username
 
   // Firebase initialisieren und verbinden
+  console.log("Starte Firebase Initialisierung...");
   initFirebaseAuthAndSync();
 }
 
@@ -182,27 +185,54 @@ function changeUserCode() {
 
 // ===== Firebase init & sync (using compat SDKs loaded in HTML) =====
 function initFirebaseAuthAndSync(){
-  if(typeof firebase === 'undefined'){ setSyncStatus('Firebase SDK nicht geladen'); return; }
+  console.log("initFirebaseAuthAndSync gestartet");
+  console.log("firebase vorhanden?", typeof firebase !== 'undefined');
+
+  if(typeof firebase === 'undefined'){
+    console.error("Firebase SDK nicht geladen!");
+    setSyncStatus('Firebase SDK nicht geladen');
+    return;
+  }
+
   // require that user inserted config
-  if(!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey){ setSyncStatus('Firebase nicht konfiguriert'); return; }
+  if(!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey){
+    console.error("Firebase nicht konfiguriert!");
+    setSyncStatus('Firebase nicht konfiguriert');
+    return;
+  }
 
   try{
+    console.log("Initialisiere Firebase App...");
     // Firebase App ist bereits in setupUserAuth initialisiert
     if(!firebaseApp) {
       firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+      console.log("Firebase App initialisiert");
+    } else {
+      console.log("Firebase App bereits vorhanden");
     }
+
     firebaseAuth = firebase.auth();
+    console.log("Firebase Auth initialisiert");
+
     if(!firebaseDb) {
       firebaseDb = firebase.database();
+      console.log("Firebase Database initialisiert");
     }
+
     firebaseEnabled = true;
+    console.log("Firebase enabled = true");
     setSyncStatus('Verbinde…');
+    console.log("Starte signInAnonymously...");
 
     firebaseAuth.signInAnonymously()
       .then(userCred=>{
+        console.log("✅ signInAnonymously erfolgreich!");
         currentUid = userCred.user.uid;
+        console.log("currentUid:", currentUid);
         setSyncStatus('Verbunden (UID:'+currentUid.slice(-6)+')');
+        console.log("Status gesetzt: Verbunden");
         const rootRef = firebaseDb.ref('lamacos_shared_state');
+        console.log("rootRef erstellt");
 
         rootRef.on('value', (snap)=>{
           const cloud = snap.val();
@@ -236,14 +266,16 @@ function initFirebaseAuthAndSync(){
         });
       })
       .catch(err=>{
-        console.warn('Firebase auth error', err);
-        setSyncStatus('Firebase Auth Fehler');
+        console.error('❌ Firebase auth error:', err);
+        console.error('Error details:', err.message, err.code);
+        setSyncStatus('Firebase Auth Fehler: ' + (err.message || 'Unbekannt'));
       });
 
   }catch(e){
-    console.warn('Firebase init failed', e);
+    console.error('❌ Firebase init failed:', e);
+    console.error('Error details:', e.message, e.stack);
     firebaseEnabled=false;
-    setSyncStatus('Firebase Init fehlgeschlagen');
+    setSyncStatus('Firebase Init fehlgeschlagen: ' + (e.message || 'Unbekannt'));
   }
 }
 
