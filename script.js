@@ -107,133 +107,77 @@ function setSyncStatus(txt){ if(syncStatusEl) syncStatusEl.textContent = txt; }
 
 // ===== User Authentication Setup =====
 function setupUserAuth() {
-  // Zuerst Firebase initialisieren
-  if(typeof firebase === 'undefined'){
-    setSyncStatus('Firebase SDK nicht geladen');
-    return;
-  }
-  if(!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey){
-    setSyncStatus('Firebase nicht konfiguriert');
-    return;
+  // Automatisch Code generieren, falls nicht vorhanden
+  if (!userId) {
+    // Generiere einen 8-stelligen Code
+    userId = Date.now().toString(36).substring(2, 8) + Math.random().toString(36).substring(2, 6);
+    userId = userId.toUpperCase(); // Macht es leichter zu lesen
+    localStorage.setItem("lamacosUserId", userId);
+    console.log("Neuer Code generiert:", userId);
   }
 
-  try {
-    if(!firebaseApp) {
-      firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+  currentUsername = userId; // Code ist gleichzeitig der Username
+
+  // Firebase initialisieren und verbinden
+  initFirebaseAuthAndSync();
+}
+
+// ===== User Menu =====
+function openUserMenu() {
+  const html = `
+    <div style="font-weight:700;margin-bottom:8px">Dein Benutzer-Code</div>
+    <div class="small muted" style="margin-bottom:12px">Mit diesem Code kannst du deine Shortcuts auf anderen Geräten bearbeiten</div>
+    <div style="background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;margin-bottom:12px;text-align:center;font-size:24px;font-weight:700;letter-spacing:2px;">
+      ${userId}
+    </div>
+    <div class="small muted" style="margin-bottom:12px">Tipp: Speichere diesen Code, um auf anderen Geräten zugreifen zu können.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button id="changeCodeBtn">Code ändern</button>
+      <button id="closeUserMenuBtn">Schließen</button>
+    </div>
+  `;
+  showDialog(html);
+
+  document.getElementById('closeUserMenuBtn').addEventListener('click', hideDialog);
+  document.getElementById('changeCodeBtn').addEventListener('click', ()=> {
+    hideDialog();
+    setTimeout(changeUserCode, 100);
+  });
+}
+
+function changeUserCode() {
+  const html = `
+    <div style="font-weight:700;margin-bottom:8px">Code ändern</div>
+    <div class="small muted" style="margin-bottom:12px">Gib einen Code von einem anderen Gerät ein, um dort erstellte Shortcuts zu bearbeiten.</div>
+    <div class="form-row">
+      <input type="text" id="newCodeInput" placeholder="Neuer Code" value="" style="text-transform:uppercase;letter-spacing:2px;text-align:center;font-weight:700;">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button id="cancelChangeCode">Abbrechen</button>
+      <button id="saveNewCode">Speichern</button>
+    </div>
+  `;
+  showDialog(html);
+
+  const input = document.getElementById('newCodeInput');
+  input.focus();
+
+  document.getElementById('cancelChangeCode').addEventListener('click', hideDialog);
+  document.getElementById('saveNewCode').addEventListener('click', ()=> {
+    const newCode = input.value.trim().toUpperCase();
+    if(!newCode) {
+      alert('Bitte gib einen Code ein');
+      return;
     }
-    firebaseDb = firebase.database();
-    const userRef = firebaseDb.ref("users");
 
-    if (!userId) {
-      // Wenn kein User existiert → Eingabefeld anzeigen
-      const overlayAuth = document.createElement("div");
-      overlayAuth.style.position = "fixed";
-      overlayAuth.style.top = 0;
-      overlayAuth.style.left = 0;
-      overlayAuth.style.width = "100%";
-      overlayAuth.style.height = "100%";
-      overlayAuth.style.background = "rgba(0,0,0,0.7)";
-      overlayAuth.style.display = "flex";
-      overlayAuth.style.flexDirection = "column";
-      overlayAuth.style.justifyContent = "center";
-      overlayAuth.style.alignItems = "center";
-      overlayAuth.style.zIndex = "9999";
+    // Code ändern
+    userId = newCode;
+    currentUsername = newCode;
+    localStorage.setItem("lamacosUserId", userId);
 
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = "Benutzername eingeben...";
-      input.style.padding = "10px";
-      input.style.fontSize = "16px";
-      input.style.borderRadius = "8px";
-      input.style.border = "none";
-      input.style.outline = "none";
-      input.style.width = "200px";
-      input.style.textAlign = "center";
-
-      const button = document.createElement("button");
-      button.textContent = "OK";
-      button.style.marginTop = "10px";
-      button.style.padding = "8px 16px";
-      button.style.fontSize = "16px";
-      button.style.border = "none";
-      button.style.borderRadius = "8px";
-      button.style.cursor = "pointer";
-      button.style.background = "#00aaff";
-      button.style.color = "white";
-
-      const message = document.createElement("p");
-      message.style.color = "white";
-      message.style.marginTop = "15px";
-      message.style.fontFamily = "sans-serif";
-
-      overlayAuth.appendChild(input);
-      overlayAuth.appendChild(button);
-      overlayAuth.appendChild(message);
-      document.body.appendChild(overlayAuth);
-
-      button.addEventListener("click", async () => {
-        const username = input.value.trim();
-        if (!username) {
-          message.textContent = "Bitte gib einen Benutzernamen ein!";
-          return;
-        }
-
-        // Erzeuge eine eindeutige ID und speichere sie lokal
-        userId = Date.now().toString(36) + Math.random().toString(36).substring(2);
-        localStorage.setItem("lamacosUserId", userId);
-        currentUsername = username;
-
-        // Speichere den Namen in Firebase
-        await userRef.child(userId).set({
-          username: username,
-          createdAt: new Date().toISOString()
-        });
-
-        message.textContent = `Willkommen, ${username}!`;
-        setTimeout(() => {
-          overlayAuth.remove();
-          // Jetzt Firebase Auth und Sync initialisieren
-          initFirebaseAuthAndSync();
-        }, 1000);
-      });
-
-    } else {
-      // Benutzer existiert → Namen abrufen
-      userRef.child(userId).get().then(snapshot => {
-        if (snapshot.exists()) {
-          currentUsername = snapshot.val().username;
-          console.log("Angemeldet als:", currentUsername);
-
-          // Optional: Begrüßung auf der Seite anzeigen
-          const welcome = document.createElement("div");
-          welcome.textContent = `Willkommen zurück, ${currentUsername}! 👋`;
-          welcome.style.position = "fixed";
-          welcome.style.bottom = "10px";
-          welcome.style.right = "10px";
-          welcome.style.background = "rgba(0,0,0,0.6)";
-          welcome.style.color = "white";
-          welcome.style.padding = "8px 14px";
-          welcome.style.borderRadius = "10px";
-          welcome.style.fontFamily = "sans-serif";
-          welcome.style.zIndex = "1000";
-          document.body.appendChild(welcome);
-
-          // Begrüßung nach 5 Sekunden ausblenden
-          setTimeout(() => welcome.remove(), 5000);
-
-          // Firebase Auth und Sync initialisieren
-          initFirebaseAuthAndSync();
-        } else {
-          // Falls User gelöscht wurde → neu anlegen
-          localStorage.removeItem("lamacosUserId");
-          location.reload();
-        }
-      });
-    }
-  } catch(e) {
-    console.warn('Firebase User Auth init failed', e);
-    setSyncStatus('Firebase Init fehlgeschlagen');
-  }
+    // Neu laden um mit neuem Code zu synchronisieren
+    location.reload();
+  });
 }
 
 // ===== Firebase init & sync (using compat SDKs loaded in HTML) =====
@@ -732,6 +676,12 @@ function getFolderName(folderId){
 
 // setup plus button and global bindings
 function setupBindings(){
+  // User Icon Click
+  const userIcon = document.getElementById('userIcon');
+  if(userIcon) {
+    userIcon.addEventListener('click', openUserMenu);
+  }
+
   plusBtn.addEventListener('click', ()=>{
     floatMenu.innerHTML = '';
     addMenuOption(floatMenu, 'Neuer Kurzbefehl', ()=>{ floatMenu.style.display='none'; openShortcutDialog(); });
