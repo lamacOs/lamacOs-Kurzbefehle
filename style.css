@@ -1,0 +1,95 @@
+:root{
+  --bg: linear-gradient(180deg,#061219,#0b1220);
+  --glass: rgba(255,255,255,0.04);
+  --glass-2: rgba(255,255,255,0.02);
+  --accent: #FFFFFF;
+  --muted: rgba(255,255,255,0.65);
+  --danger: rgba(255,80,80,0.95);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* base */
+html,body{height:100%;margin:0;background:var(--bg);color:var(--accent);-webkit-font-smoothing:antialiased;}
+.app{min-height:100vh;display:flex;flex-direction:column;gap:14px;padding:18px;box-sizing:border-box;}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.title{font-weight:800;font-size:20px;display:flex;gap:8px;align-items:center;}
+
+/* plus button (glass look) */
+.plus{
+  width:52px;height:52px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(180deg,var(--glass),var(--glass-2));
+  border:1px solid rgba(255,255,255,0.06);backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);cursor:pointer;font-size:28px;user-select:none;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.plus:hover{box-shadow:0 12px 30px rgba(0,0,0,0.7), 0 0 12px rgba(255,255,255,0.08);}
+.plus:active{transform:scale(0.96);}
+
+/* layout */
+.content{display:flex;gap:12px;align-items:flex-start;width:100%;}
+.sidebar{min-width:220px;max-width:300px;flex:0 0 auto;}
+.cards{flex:1 1 auto;display:grid;gap:12px;}
+.card{padding:12px;border-radius:12px;background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.06);backdrop-filter: blur(10px);box-shadow: 0 10px 28px rgba(0,0,0,0.55);
+  display:flex;gap:12px;align-items:center;cursor:pointer;transition:transform 0.15s ease;}
+.card:hover{transform:translateY(-2px);}
+.card .meta{flex:1}
+.card .name{font-weight:700}
+.card .desc{font-size:13px;color:var(--muted);margin-top:4px}
+.icon{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;font-size:22px;border:1px solid rgba(255,255,255,0.04);
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));}
+
+/* options button in card */
+.card .card-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.card .options{cursor:pointer;padding:6px 8px;border-radius:8px}
+.card .options:hover{background:rgba(255,255,255,0.02)}
+
+/* responsive */
+@media (orientation: portrait) {
+  .content{flex-direction:column}
+  .cards{grid-template-columns: 1fr;}
+  .sidebar{order:2}
+}
+@media (orientation: landscape) {
+  .content{flex-direction:row}
+  .cards{grid-template-columns: repeat(auto-fill,minmax(280px,1fr))}
+  .sidebar{order:1}
+}
+
+/* buttons & small */
+.btn{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--accent);cursor:pointer;font-weight:600;}
+.btn-danger{background:linear-gradient(90deg,var(--danger),rgba(200,60,60,0.8));color:white;border:none}
+.muted{color:var(--muted);font-size:13px}
+
+/* overlay + dialog */
+.overlay{position:fixed;inset:0;display:none;place-items:center;background:linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.65));z-index:1000;}
+.overlay.show{display:grid;animation:fadeIn 0.18s ease;}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.dialog{width: min(820px,94vw);background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.06);padding:14px;border-radius:12px;backdrop-filter: blur(14px);box-shadow: 0 18px 40px rgba(0,0,0,0.7);}
+.form-row{display:flex;gap:8px;margin:8px 0}
+.form-row input[type="text"], .form-row textarea, .form-row input[type="url"], .form-row input[type="password"]{
+  flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:var(--accent);outline:none;font-size:14px;}
+textarea{min-height:90px;resize:vertical}
+
+/* float menu for plus/options */
+.float-menu{position:fixed;display:none;z-index:1200;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  border-radius:10px;padding:6px;border:1px solid rgba(255,255,255,0.06);box-shadow: 0 10px 30px rgba(0,0,0,0.6);transition:opacity 0.12s;}
+.float-menu button{display:block;width:100%;text-align:left;padding:10px;border-radius:8px;background:transparent;border:none;color:var(--accent);cursor:pointer;font-weight:600;}
+.float-menu button.cancel{color:var(--muted);font-weight:600}
+
+/* HIGHLIGHT: make the first option more prominent */
+.float-menu button:first-child{
+  background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  box-shadow: inset 0 -2px 0 rgba(255,255,255,0.02);
+  font-size:15px;
+  font-weight:800;
+}
+
+/* hover styles */
+.float-menu button:hover{ background: rgba(255,255,255,0.02); transform:translateY(-1px); }
+
+/* small */
+.small{font-size:13px;color:var(--muted)}
+footer{margin-top:8px;color:var(--muted);font-size:13px}
+.admin-pill{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);margin-left:8px;font-weight:700}
