@@ -18,10 +18,6 @@ const ADMIN_DURATION_MS = 30 * 60 * 1000;
 const STORAGE_KEY = 'lamacos.shortcuts.v1';
 
 // === Username Setup ===
-// Referenz zu Firebase Database
-const db = firebase.database();
-const userRef = db.ref("users");
-
 // Prüfen, ob im localStorage schon eine User-ID gespeichert ist
 let userId = localStorage.getItem("lamacosUserId");
 let currentUsername = '';
@@ -109,111 +105,132 @@ async function sha256hex(str){
 
 // ===== User Authentication Setup =====
 function setupUserAuth() {
-  if (!userId) {
-    // Wenn kein User existiert → Eingabefeld anzeigen
-    const overlayAuth = document.createElement("div");
-    overlayAuth.style.position = "fixed";
-    overlayAuth.style.top = 0;
-    overlayAuth.style.left = 0;
-    overlayAuth.style.width = "100%";
-    overlayAuth.style.height = "100%";
-    overlayAuth.style.background = "rgba(0,0,0,0.7)";
-    overlayAuth.style.display = "flex";
-    overlayAuth.style.flexDirection = "column";
-    overlayAuth.style.justifyContent = "center";
-    overlayAuth.style.alignItems = "center";
-    overlayAuth.style.zIndex = "9999";
+  // Zuerst Firebase initialisieren
+  if(typeof firebase === 'undefined'){
+    setSyncStatus('Firebase SDK nicht geladen');
+    return;
+  }
+  if(!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey){
+    setSyncStatus('Firebase nicht konfiguriert');
+    return;
+  }
 
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "Benutzername eingeben...";
-    input.style.padding = "10px";
-    input.style.fontSize = "16px";
-    input.style.borderRadius = "8px";
-    input.style.border = "none";
-    input.style.outline = "none";
-    input.style.width = "200px";
-    input.style.textAlign = "center";
+  try {
+    if(!firebaseApp) {
+      firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    firebaseDb = firebase.database();
+    const userRef = firebaseDb.ref("users");
 
-    const button = document.createElement("button");
-    button.textContent = "OK";
-    button.style.marginTop = "10px";
-    button.style.padding = "8px 16px";
-    button.style.fontSize = "16px";
-    button.style.border = "none";
-    button.style.borderRadius = "8px";
-    button.style.cursor = "pointer";
-    button.style.background = "#00aaff";
-    button.style.color = "white";
+    if (!userId) {
+      // Wenn kein User existiert → Eingabefeld anzeigen
+      const overlayAuth = document.createElement("div");
+      overlayAuth.style.position = "fixed";
+      overlayAuth.style.top = 0;
+      overlayAuth.style.left = 0;
+      overlayAuth.style.width = "100%";
+      overlayAuth.style.height = "100%";
+      overlayAuth.style.background = "rgba(0,0,0,0.7)";
+      overlayAuth.style.display = "flex";
+      overlayAuth.style.flexDirection = "column";
+      overlayAuth.style.justifyContent = "center";
+      overlayAuth.style.alignItems = "center";
+      overlayAuth.style.zIndex = "9999";
 
-    const message = document.createElement("p");
-    message.style.color = "white";
-    message.style.marginTop = "15px";
-    message.style.fontFamily = "sans-serif";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Benutzername eingeben...";
+      input.style.padding = "10px";
+      input.style.fontSize = "16px";
+      input.style.borderRadius = "8px";
+      input.style.border = "none";
+      input.style.outline = "none";
+      input.style.width = "200px";
+      input.style.textAlign = "center";
 
-    overlayAuth.appendChild(input);
-    overlayAuth.appendChild(button);
-    overlayAuth.appendChild(message);
-    document.body.appendChild(overlayAuth);
+      const button = document.createElement("button");
+      button.textContent = "OK";
+      button.style.marginTop = "10px";
+      button.style.padding = "8px 16px";
+      button.style.fontSize = "16px";
+      button.style.border = "none";
+      button.style.borderRadius = "8px";
+      button.style.cursor = "pointer";
+      button.style.background = "#00aaff";
+      button.style.color = "white";
 
-    button.addEventListener("click", async () => {
-      const username = input.value.trim();
-      if (!username) {
-        message.textContent = "Bitte gib einen Benutzernamen ein!";
-        return;
-      }
+      const message = document.createElement("p");
+      message.style.color = "white";
+      message.style.marginTop = "15px";
+      message.style.fontFamily = "sans-serif";
 
-      // Erzeuge eine eindeutige ID und speichere sie lokal
-      userId = Date.now().toString(36) + Math.random().toString(36).substring(2);
-      localStorage.setItem("lamacosUserId", userId);
-      currentUsername = username;
+      overlayAuth.appendChild(input);
+      overlayAuth.appendChild(button);
+      overlayAuth.appendChild(message);
+      document.body.appendChild(overlayAuth);
 
-      // Speichere den Namen in Firebase
-      await userRef.child(userId).set({
-        username: username,
-        createdAt: new Date().toISOString()
+      button.addEventListener("click", async () => {
+        const username = input.value.trim();
+        if (!username) {
+          message.textContent = "Bitte gib einen Benutzernamen ein!";
+          return;
+        }
+
+        // Erzeuge eine eindeutige ID und speichere sie lokal
+        userId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+        localStorage.setItem("lamacosUserId", userId);
+        currentUsername = username;
+
+        // Speichere den Namen in Firebase
+        await userRef.child(userId).set({
+          username: username,
+          createdAt: new Date().toISOString()
+        });
+
+        message.textContent = `Willkommen, ${username}!`;
+        setTimeout(() => {
+          overlayAuth.remove();
+          // Jetzt Firebase Auth und Sync initialisieren
+          initFirebaseAuthAndSync();
+        }, 1000);
       });
 
-      message.textContent = `Willkommen, ${username}!`;
-      setTimeout(() => {
-        overlayAuth.remove();
-        // Jetzt Firebase initialisieren
-        initFirebaseAuthAndSync();
-      }, 1000);
-    });
+    } else {
+      // Benutzer existiert → Namen abrufen
+      userRef.child(userId).get().then(snapshot => {
+        if (snapshot.exists()) {
+          currentUsername = snapshot.val().username;
+          console.log("Angemeldet als:", currentUsername);
 
-  } else {
-    // Benutzer existiert → Namen abrufen
-    userRef.child(userId).get().then(snapshot => {
-      if (snapshot.exists()) {
-        currentUsername = snapshot.val().username;
-        console.log("Angemeldet als:", currentUsername);
+          // Optional: Begrüßung auf der Seite anzeigen
+          const welcome = document.createElement("div");
+          welcome.textContent = `Willkommen zurück, ${currentUsername}! 👋`;
+          welcome.style.position = "fixed";
+          welcome.style.bottom = "10px";
+          welcome.style.right = "10px";
+          welcome.style.background = "rgba(0,0,0,0.6)";
+          welcome.style.color = "white";
+          welcome.style.padding = "8px 14px";
+          welcome.style.borderRadius = "10px";
+          welcome.style.fontFamily = "sans-serif";
+          welcome.style.zIndex = "1000";
+          document.body.appendChild(welcome);
 
-        // Optional: Begrüßung auf der Seite anzeigen
-        const welcome = document.createElement("div");
-        welcome.textContent = `Willkommen zurück, ${currentUsername}! 👋`;
-        welcome.style.position = "fixed";
-        welcome.style.bottom = "10px";
-        welcome.style.right = "10px";
-        welcome.style.background = "rgba(0,0,0,0.6)";
-        welcome.style.color = "white";
-        welcome.style.padding = "8px 14px";
-        welcome.style.borderRadius = "10px";
-        welcome.style.fontFamily = "sans-serif";
-        welcome.style.zIndex = "1000";
-        document.body.appendChild(welcome);
+          // Begrüßung nach 5 Sekunden ausblenden
+          setTimeout(() => welcome.remove(), 5000);
 
-        // Begrüßung nach 5 Sekunden ausblenden
-        setTimeout(() => welcome.remove(), 5000);
-
-        // Firebase initialisieren
-        initFirebaseAuthAndSync();
-      } else {
-        // Falls User gelöscht wurde → neu anlegen
-        localStorage.removeItem("lamacosUserId");
-        location.reload();
-      }
-    });
+          // Firebase Auth und Sync initialisieren
+          initFirebaseAuthAndSync();
+        } else {
+          // Falls User gelöscht wurde → neu anlegen
+          localStorage.removeItem("lamacosUserId");
+          location.reload();
+        }
+      });
+    }
+  } catch(e) {
+    console.warn('Firebase User Auth init failed', e);
+    setSyncStatus('Firebase Init fehlgeschlagen');
   }
 }
 
@@ -224,11 +241,14 @@ function initFirebaseAuthAndSync(){
   if(!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey){ setSyncStatus('Firebase nicht konfiguriert'); return; }
 
   try{
+    // Firebase App ist bereits in setupUserAuth initialisiert
     if(!firebaseApp) {
       firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
     }
     firebaseAuth = firebase.auth();
-    firebaseDb = firebase.database();
+    if(!firebaseDb) {
+      firebaseDb = firebase.database();
+    }
     firebaseEnabled = true;
     setSyncStatus('Verbinde…');
 
