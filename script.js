@@ -261,7 +261,12 @@ function initFirebaseAuthAndSync(){
               pushStateToCloud(state).then(()=>setSyncStatus('Initial sync (Local gepusht)'));
             } else setSyncStatus('Sync ready');
           } else {
-            pushStateToCloud(state).then(()=>setSyncStatus('Initial sync (neu erstellt)'));
+            // Firebase ist leer – lösche lokale Daten
+            console.log("Firebase ist leer – lösche lokale Daten...");
+            localStorage.clear();
+            state = {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
+            render();
+            setSyncStatus('Sync ready (neu gestartet)');
           }
         });
       })
