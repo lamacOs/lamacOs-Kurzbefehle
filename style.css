@@ -94,34 +94,3 @@ textarea{min-height:90px;resize:vertical}
 .small{font-size:13px;color:var(--muted)}
 footer{margin-top:8px;color:var(--muted);font-size:13px}
 .admin-pill{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);margin-left:8px;font-weight:700}
-/* Suchleiste */
-#search-bar {
-    width: 100%;
-    padding: 8px 12px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 16px;
-}
-
-/* Tags-Feld beim Erstellen/Bearbeiten */
-.tag-input {
-    width: 100%;
-    padding: 6px 10px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-/* Tags-Chips in der Liste */
-.tag-chip {
-    display: inline-block;
-    background-color: #d0f0ff; /* hellblau */
-    color: #007acc;
-    padding: 2px 8px;
-    margin: 2px 2px 2px 0;
-    border-radius: 12px;
-    font-size: 12px;
-}
