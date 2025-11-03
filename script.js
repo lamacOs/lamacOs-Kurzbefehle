@@ -749,3 +749,130 @@ window.openFolder = openFolder;
 window.hideDialog = hideDialog;
 window.openFolderMenuAtElement = openFolderMenuAtElement;
 window.openShortcutMenuAtElement = openShortcutMenuAtElement;
+// --- Tags-Feld hinzufügen ---
+function addTagsField(form, existingItem) {
+    if (form.querySelector(".tag-input")) return;
+
+    const tagInput = document.createElement("input");
+    tagInput.type = "text";
+    tagInput.placeholder = "Tags (max. 5, durch Kommas getrennt)";
+    tagInput.className = "tag-input";
+    tagInput.style.width = "100%";
+    tagInput.style.padding = "6px 10px";
+    tagInput.style.marginTop = "5px";
+    tagInput.style.marginBottom = "10px";
+
+    if (existingItem && existingItem.tags) {
+        tagInput.value = existingItem.tags.join(", ");
+    }
+
+    form.appendChild(tagInput);
+}
+
+// --- Suchleiste erstellen ---
+if (!document.getElementById("search-bar")) {
+    const searchBar = document.createElement("input");
+    searchBar.id = "search-bar";
+    searchBar.placeholder = "Suche nach Name oder Tags...";
+    searchBar.style.width = "100%";
+    searchBar.style.padding = "8px 12px";
+    searchBar.style.marginBottom = "10px";
+    searchBar.style.border = "1px solid #ccc";
+    searchBar.style.borderRadius = "8px";
+    searchBar.style.fontSize = "16px";
+    document.body.prepend(searchBar);
+
+    searchBar.addEventListener("input", () => {
+        const query = searchBar.value.toLowerCase();
+        const filtered = allItems.filter(item =>
+            item.name.toLowerCase().includes(query) ||
+            (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
+        );
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        renderItems(filtered);
+    });
+}
+
+// --- Items rendern ---
+function renderItems(list) {
+    let container = document.getElementById("item-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "item-container";
+        document.body.appendChild(container);
+    }
+    container.innerHTML = "";
+    list.forEach(item => {
+        const div = document.createElement("div");
+        div.textContent = item.name + (item.tags ? " [" + item.tags.join(", ") + "]" : "");
+        container.appendChild(div);
+    });
+}
+
+// --- Neues Item erstellen / bearbeiten ---
+function createOrEditItem(existingItem = null) {
+    const form = document.createElement("form");
+    form.style.margin = "10px 0";
+
+    // Name-Feld
+    const nameInput = document.createElement("input");
+    nameInput.placeholder = "Name";
+    nameInput.value = existingItem ? existingItem.name : "";
+    nameInput.style.width = "100%";
+    nameInput.style.padding = "6px 10px";
+    nameInput.style.marginBottom = "5px";
+    form.appendChild(nameInput);
+
+    // Tags-Feld
+    addTagsField(form, existingItem);
+
+    // Submit
+    const submitBtn = document.createElement("button");
+    submitBtn.textContent = "Speichern";
+    submitBtn.style.marginTop = "5px";
+    form.appendChild(submitBtn);
+
+    form.addEventListener("submit", e => {
+        e.preventDefault();
+        const tagInput = form.querySelector(".tag-input");
+        let tags = tagInput.value.split(",").map(t => t.trim()).filter(t => t);
+        if (tags.length > 5) {
+            alert("Maximal 5 Tags erlaubt!");
+            return;
+        }
+
+        const newItem = {
+            name: nameInput.value,
+            type: existingItem ? existingItem.type : "shortcut",
+            tags: tags
+        };
+
+        if (existingItem) Object.assign(existingItem, newItem);
+        else allItems.push(newItem);
+
+        // Firebase speichern, falls vorhanden
+        if (typeof saveToFirebase === "function") saveToFirebase();
+
+        renderItems(allItems);
+        form.remove();
+    });
+
+    document.body.appendChild(form);
+}
+
+// --- Button zum Erstellen eines neuen Items ---
+if (!document.getElementById("create-item-btn")) {
+    const createBtn = document.createElement("button");
+    createBtn.id = "create-item-btn";
+    createBtn.textContent = "Neuer Kurzbefehl / Ordner";
+    createBtn.style.display = "block";
+    createBtn.style.marginTop = "10px";
+    createBtn.addEventListener("click", () => createOrEditItem());
+    document.body.appendChild(createBtn);
+}
+
+// --- Globale Items-Variable ---
+if (typeof allItems === "undefined") var allItems = [];
+
+// --- Initial rendern ---
+renderItems(allItems);
