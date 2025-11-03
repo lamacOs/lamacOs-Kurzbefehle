@@ -749,3 +749,143 @@ window.openFolder = openFolder;
 window.hideDialog = hideDialog;
 window.openFolderMenuAtElement = openFolderMenuAtElement;
 window.openShortcutMenuAtElement = openShortcutMenuAtElement;
+// =========================
+// 🔹 Tags-Feld + Suche für lamacOs
+// =========================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  // -------- Tags-Feld automatisch ergänzen --------
+  // sucht die vorhandenen Inputs für Kurzbefehle und hängt ein neues Tags-Feld an
+  const shortcutInputs = document.querySelectorAll("input"); // alle Inputs durchsuchen
+  let hasTagsField = false;
+  shortcutInputs.forEach(inp => {
+    if (inp.id === "tagsInput") hasTagsField = true;
+  });
+
+  if (!hasTagsField && shortcutInputs.length > 0) {
+    const lastInput = shortcutInputs[shortcutInputs.length - 1]; // nach letztem Input anhängen
+    const container = lastInput.parentNode;
+
+    const label = document.createElement("label");
+    label.textContent = "Tags (Min. 5 und durch Komma getrennt)";
+    label.style.display = "block";
+    label.style.marginTop = "10px";
+    label.style.color = "white";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.id = "tagsInput";
+    input.placeholder = "z. B. tools, apple, nützlich, web, kreativ";
+    input.style.width = "100%";
+    input.style.padding = "6px";
+    input.style.marginTop = "5px";
+    input.style.borderRadius = "8px";
+    input.style.border = "none";
+    input.style.background = "rgba(255,255,255,0.08)";
+    input.style.color = "white";
+
+    container.appendChild(label);
+    container.appendChild(input);
+  }
+
+  // -------- Suchleiste hinzufügen --------
+  if (!document.getElementById("searchContainer")) {
+    const searchDiv = document.createElement("div");
+    searchDiv.id = "searchContainer";
+    searchDiv.style.cssText = `
+      position: sticky;
+      top: 10px;
+      width: 90%;
+      margin: 10px auto 20px;
+      display: flex;
+      align-items: center;
+      backdrop-filter: blur(15px);
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+    `;
+
+    const input = document.createElement("input");
+    input.id = "searchInput";
+    input.type = "text";
+    input.placeholder = "Kurzbefehle oder Tags suchen...";
+    input.style.cssText = `
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 15px;
+      outline: none;
+    `;
+    searchDiv.appendChild(input);
+
+    const button = document.createElement("button");
+    button.id = "searchBtn";
+    button.textContent = "Suchen";
+    button.style.cssText = `
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 6px 12px;
+      margin-left: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+    searchDiv.appendChild(button);
+
+    // am Anfang des Body einfügen
+    const body = document.querySelector("body");
+    body.insertBefore(searchDiv, body.firstChild);
+  }
+
+  // -------- Suchfunktion aktivieren --------
+  const searchInput = document.getElementById("searchInput");
+  const searchBtn = document.getElementById("searchBtn");
+  if (searchInput && searchBtn) {
+    searchBtn.addEventListener("click", runSearch);
+    searchInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") runSearch();
+    });
+  }
+
+  // -------- Funktionen --------
+  function runSearch() {
+    const term = searchInput.value.trim().toLowerCase();
+    if (!term) return;
+    searchShortcuts(term);
+  }
+
+  function searchShortcuts(term) {
+    const allShortcuts = Object.values(window.shortcuts || {});
+    const results = allShortcuts.filter(sc => {
+      const name = sc.name?.toLowerCase() || "";
+      const tags = (sc.tags || []).map(t => t.toLowerCase());
+      return name.includes(term) || tags.some(t => t.includes(term));
+    }).sort((a, b) => a.name.localeCompare(b.name, "de"));
+    displaySearchResults(results);
+  }
+
+  function displaySearchResults(results) {
+    const container = document.getElementById("shortcutsContainer");
+    if (!container) return;
+    container.innerHTML = "";
+    if (results.length === 0) {
+      container.innerHTML = "<p style='color:white;text-align:center;margin-top:20px;'>Keine Ergebnisse gefunden 😕</p>";
+      return;
+    }
+    results.forEach(sc => {
+      const div = document.createElement("div");
+      div.className = "shortcutCard";
+      div.innerHTML = `
+        <strong>${sc.name}</strong><br>
+        <small>${sc.description || ""}</small><br>
+        ${(sc.tags?.length ? `<small><b>Tags:</b> ${sc.tags.join(", ")}</small>` : "")}
+      `;
+      container.appendChild(div);
+    });
+  }
+
+});
