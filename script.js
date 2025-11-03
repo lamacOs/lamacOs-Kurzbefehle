@@ -749,3 +749,87 @@ window.openFolder = openFolder;
 window.hideDialog = hideDialog;
 window.openFolderMenuAtElement = openFolderMenuAtElement;
 window.openShortcutMenuAtElement = openShortcutMenuAtElement;
+// ===================== 🏷️ TAGS-FELD + SUCHE =====================
+
+// 🔹 1. Tags-Feld zum Formular hinzufügen (nur 1x)
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("#shortcutForm");
+  if (form && !form.querySelector("#tagsInput")) {
+    const label = document.createElement("label");
+    label.textContent = "Tags (Min. 5 und durch Komma getrennt)";
+    label.style.display = "block";
+    label.style.marginTop = "10px";
+    label.style.color = "white";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.id = "tagsInput";
+    input.placeholder = "z. B. produktivität, musik, wetter, schnell, link";
+    input.style.width = "100%";
+    input.style.padding = "8px";
+    input.style.borderRadius = "8px";
+    input.style.border = "none";
+    input.style.marginTop = "5px";
+    input.style.background = "rgba(255,255,255,0.08)";
+    input.style.color = "white";
+
+    form.appendChild(label);
+    form.appendChild(input);
+  }
+});
+
+// 🔹 2. Suchleiste aktivieren
+document.addEventListener("DOMContentLoaded", () => {
+  const searchInput = document.getElementById("searchInput");
+  const searchBtn = document.getElementById("searchBtn");
+  if (!searchInput || !searchBtn) return;
+
+  searchBtn.addEventListener("click", runSearch);
+  searchInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") runSearch();
+  });
+});
+
+// 🔹 3. Suchfunktion
+function runSearch() {
+  const term = document.getElementById("searchInput").value.trim().toLowerCase();
+  if (!term) return;
+  searchShortcuts(term);
+}
+
+function searchShortcuts(term) {
+  // Nimm alle gespeicherten Kurzbefehle (aus Firebase oder lokal)
+  const allShortcuts = Object.values(window.shortcuts || {});
+  const results = allShortcuts.filter(sc => {
+    const name = sc.name?.toLowerCase() || "";
+    const tags = (sc.tags || []).map(t => t.toLowerCase());
+    const inName = name.includes(term);
+    const inTags = tags.some(t => t.includes(term));
+    return inName || inTags;
+  }).sort((a, b) => a.name.localeCompare(b.name, "de"));
+
+  displaySearchResults(results);
+}
+
+// 🔹 4. Ergebnisse anzeigen
+function displaySearchResults(results) {
+  const container = document.querySelector("#shortcutsContainer");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (results.length === 0) {
+    container.innerHTML = "<p style='color:white;text-align:center;margin-top:20px;'>Keine Ergebnisse gefunden 😕</p>";
+    return;
+  }
+
+  results.forEach(sc => {
+    const div = document.createElement("div");
+    div.className = "shortcutCard";
+    div.innerHTML = `
+      <strong>${sc.name}</strong><br>
+      <small>${sc.description || ""}</small><br>
+      ${(sc.tags?.length ? `<small><b>Tags:</b> ${sc.tags.join(", ")}</small>` : "")}
+    `;
+    container.appendChild(div);
+  });
+}
