@@ -749,3 +749,123 @@ window.openFolder = openFolder;
 window.hideDialog = hideDialog;
 window.openFolderMenuAtElement = openFolderMenuAtElement;
 window.openShortcutMenuAtElement = openShortcutMenuAtElement;
+/* ---------- GLOBAL ---------- */
+if (typeof allItems === "undefined") var allItems = [];
+
+let container = document.getElementById("item-container");
+if (!container) {
+    container = document.createElement("div");
+    container.id = "item-container";
+    document.body.appendChild(container);
+}
+
+/* ---------- SEARCH BAR ---------- */
+let searchBar = document.getElementById("search-bar");
+if (!searchBar) {
+    searchBar = document.createElement("input");
+    searchBar.id = "search-bar";
+    searchBar.placeholder = "Suche nach Name oder Tags...";
+    document.body.prepend(searchBar);
+}
+
+searchBar.addEventListener("input", () => {
+    const query = searchBar.value.toLowerCase();
+    const filtered = allItems.filter(item =>
+        item.name.toLowerCase().includes(query) ||
+        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
+    );
+    filtered.sort((a, b) => a.name.localeCompare(b.name));
+    renderItems(filtered);
+});
+
+/* ---------- RENDER FUNCTION ---------- */
+function renderItems(list) {
+    container.innerHTML = "";
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    list.forEach(item => {
+        const div = document.createElement("div");
+        div.style.marginBottom = "5px";
+        div.textContent = item.name;
+
+        if (item.tags && item.tags.length > 0) {
+            const tagContainer = document.createElement("span");
+            item.tags.forEach(tag => {
+                const chip = document.createElement("span");
+                chip.className = "tag-chip";
+                chip.textContent = tag;
+                tagContainer.appendChild(chip);
+            });
+            div.appendChild(document.createElement("br"));
+            div.appendChild(tagContainer);
+        }
+
+        container.appendChild(div);
+    });
+}
+
+/* ---------- CREATE / EDIT FORM ---------- */
+function createOrEditItem(existingItem = null) {
+    const form = document.createElement("form");
+    form.style.margin = "10px 0";
+
+    // Name
+    const nameInput = document.createElement("input");
+    nameInput.placeholder = "Name";
+    nameInput.value = existingItem ? existingItem.name : "";
+    nameInput.style.width = "100%";
+    nameInput.style.padding = "6px 10px";
+    nameInput.style.marginBottom = "5px";
+    form.appendChild(nameInput);
+
+    // Tags
+    const tagInput = document.createElement("input");
+    tagInput.placeholder = "Tags (max. 5, durch Kommas getrennt)";
+    tagInput.className = "tag-input";
+    tagInput.value = existingItem && existingItem.tags ? existingItem.tags.join(", ") : "";
+    form.appendChild(tagInput);
+
+    // Submit
+    const submitBtn = document.createElement("button");
+    submitBtn.textContent = "Speichern";
+    submitBtn.style.marginTop = "5px";
+    form.appendChild(submitBtn);
+
+    form.addEventListener("submit", e => {
+        e.preventDefault();
+        let tags = tagInput.value.split(",").map(t => t.trim()).filter(t => t);
+        if (tags.length > 5) {
+            alert("Maximal 5 Tags erlaubt!");
+            return;
+        }
+
+        const newItem = {
+            name: nameInput.value,
+            type: existingItem ? existingItem.type : "shortcut",
+            tags: tags
+        };
+
+        if (existingItem) Object.assign(existingItem, newItem);
+        else allItems.push(newItem);
+
+        if (typeof saveToFirebase === "function") saveToFirebase();
+        renderItems(allItems);
+        form.remove();
+    });
+
+    document.body.appendChild(form);
+}
+
+/* ---------- CREATE BUTTON ---------- */
+let createBtn = document.getElementById("create-item-btn");
+if (!createBtn) {
+    createBtn = document.createElement("button");
+    createBtn.id = "create-item-btn";
+    createBtn.textContent = "Neuer Kurzbefehl / Ordner";
+    createBtn.style.display = "block";
+    createBtn.style.marginTop = "10px";
+    createBtn.addEventListener("click", () => createOrEditItem());
+    document.body.appendChild(createBtn);
+}
+
+/* ---------- INITIAL RENDER ---------- */
+renderItems(allItems);
