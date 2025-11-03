@@ -138,3 +138,79 @@ footer{margin-top:8px;color:var(--muted);font-size:13px}
   margin: 10px;
   color: white;
 }
+/* ============================= */
+/* 🔍 Suchleiste + Ergebnis-Karten für lamacOs */
+/* ============================= */
+
+#searchContainer {
+  position: sticky;
+  top: 10px;
+  width: 90%;
+  margin: 10px auto 20px;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 999;
+}
+
+#searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 15px;
+  outline: none;
+  padding: 6px;
+}
+
+#searchBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  padding: 6px 12px;
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+#searchBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.shortcutCard {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px;
+  margin: 10px auto;
+  color: white;
+  width: 90%;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.shortcutCard:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#tagsInput {
+  width: 100%;
+  padding: 6px;
+  margin-top: 5px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+#tagsInput::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
