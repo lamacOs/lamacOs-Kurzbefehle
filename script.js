@@ -749,158 +749,98 @@ window.openFolder = openFolder;
 window.hideDialog = hideDialog;
 window.openFolderMenuAtElement = openFolderMenuAtElement;
 window.openShortcutMenuAtElement = openShortcutMenuAtElement;
-// =========================
-// 🔹 Tags-Feld + Suche für lamacOs
-// =========================
+// Beispiel: Kurzbefehle/Ordner-Datenstruktur
+let items = [
+    // Jede Item hat: name, type ("shortcut" oder "folder"), tags
+    {name: "Notizen", type: "folder", tags: ["school", "notes"]},
+    {name: "Hausaufgaben", type: "shortcut", tags: ["school"]},
+    {name: "Rezept", type: "shortcut", tags: ["food", "cooking"]},
+];
 
-document.addEventListener("DOMContentLoaded", () => {
+// --- Suchleiste erstellen ---
+const searchBar = document.createElement("input");
+searchBar.id = "search-bar";
+searchBar.placeholder = "Suche nach Name oder Tags...";
+document.body.prepend(searchBar);
 
-  // -------- Tags-Feld erstellen, falls noch nicht vorhanden --------
-  function createTagsField() {
-    // Wir suchen alle Inputs, hängen das Feld unter das letzte Input an
-    const allInputs = document.querySelectorAll("input");
-    let exists = false;
-    allInputs.forEach(i => { if (i.id === "tagsInput") exists = true; });
-    if (exists) return;
-
-    if (allInputs.length > 0) {
-      const lastInput = allInputs[allInputs.length - 1];
-      const container = lastInput.parentNode;
-
-      const label = document.createElement("label");
-      label.textContent = "Tags (Min. 5 und durch Komma getrennt)";
-      label.style.display = "block";
-      label.style.marginTop = "10px";
-      label.style.color = "white";
-
-      const input = document.createElement("input");
-      input.type = "text";
-      input.id = "tagsInput";
-      input.placeholder = "z. B. tools, apple, nützlich, web, kreativ";
-      input.style.width = "100%";
-      input.style.padding = "6px";
-      input.style.marginTop = "5px";
-      input.style.borderRadius = "8px";
-      input.style.border = "none";
-      input.style.background = "rgba(255,255,255,0.08)";
-      input.style.color = "white";
-
-      container.appendChild(label);
-      container.appendChild(input);
-    }
-  }
-  createTagsField();
-
-  // -------- Suchleiste erstellen --------
-  if (!document.getElementById("searchContainer")) {
-    const searchDiv = document.createElement("div");
-    searchDiv.id = "searchContainer";
-    searchDiv.style.cssText = `
-      position: sticky;
-      top: 10px;
-      width: 90%;
-      margin: 10px auto 20px;
-      display: flex;
-      align-items: center;
-      backdrop-filter: blur(15px);
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 8px 12px;
-      border: 1px solid rgba(255,255,255,0.1);
-      z-index: 999;
-    `;
-
-    const input = document.createElement("input");
-    input.id = "searchInput";
-    input.type = "text";
-    input.placeholder = "Kurzbefehle oder Tags suchen...";
-    input.style.cssText = `
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: white;
-      font-size: 15px;
-      outline: none;
-      padding: 6px;
-    `;
-    searchDiv.appendChild(input);
-
-    const button = document.createElement("button");
-    button.id = "searchBtn";
-    button.textContent = "Suchen";
-    button.style.cssText = `
-      background: rgba(255,255,255,0.1);
-      border: none;
-      border-radius: 8px;
-      color: white;
-      padding: 6px 12px;
-      margin-left: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
-    searchDiv.appendChild(button);
-
-    document.body.insertBefore(searchDiv, document.body.firstChild);
-  }
-
-  // -------- Suchfunktion aktivieren --------
-  const searchInput = document.getElementById("searchInput");
-  const searchBtn = document.getElementById("searchBtn");
-
-  if (searchInput && searchBtn) {
-    searchBtn.addEventListener("click", runSearch);
-    searchInput.addEventListener("keydown", e => {
-      if (e.key === "Enter") runSearch();
-    });
-  }
-
-  function runSearch() {
-    const term = searchInput.value.trim().toLowerCase();
-    if (!term) return;
-    searchShortcuts(term);
-  }
-
-  function searchShortcuts(term) {
-    const allShortcuts = Object.values(window.shortcuts || {});
-    const results = allShortcuts.filter(sc => {
-      const name = sc.name?.toLowerCase() || "";
-      const tags = (sc.tags || []).map(t => t.toLowerCase());
-      return name.includes(term) || tags.some(t => t.includes(term));
-    }).sort((a, b) => a.name.localeCompare(b.name, "de"));
-
-    displaySearchResults(results);
-  }
-
-  function displaySearchResults(results) {
-    const container = document.getElementById("shortcutsContainer");
-    if (!container) return;
-    container.innerHTML = "";
-    if (results.length === 0) {
-      container.innerHTML = "<p style='color:white;text-align:center;margin-top:20px;'>Keine Ergebnisse gefunden 😕</p>";
-      return;
-    }
-    results.forEach(sc => {
-      const div = document.createElement("div");
-      div.className = "shortcutCard";
-      div.innerHTML = `
-        <strong>${sc.name}</strong><br>
-        <small>${sc.description || ""}</small><br>
-        ${(sc.tags?.length ? `<small><b>Tags:</b> ${sc.tags.join(", ")}</small>` : "")}
-      `;
-      container.appendChild(div);
-    });
-  }
-
-  // -------- Tags beim Speichern automatisch zu window.shortcuts hinzufügen --------
-  // Dieser Teil muss ggf. in die bestehende Save-Funktion integriert werden:
-  function addTagsToShortcut(sc) {
-    const tagsInput = document.getElementById("tagsInput");
-    if (tagsInput) {
-      const tags = tagsInput.value.split(",").map(t => t.trim()).filter(t => t.length > 0);
-      sc.tags = tags;
-    }
-    return sc;
-  }
-
-  // Beispiel: window.shortcuts['id'] = addTagsToShortcut(shortcutObj);
+searchBar.addEventListener("input", () => {
+    const query = searchBar.value.toLowerCase();
+    let filtered = items.filter(item => 
+        item.name.toLowerCase().includes(query) ||
+        item.tags.some(tag => tag.toLowerCase().includes(query))
+    );
+    filtered.sort((a, b) => a.name.localeCompare(b.name));
+    renderList(filtered);
 });
+
+// --- Render-Funktion für Ergebnisliste ---
+const listContainer = document.createElement("div");
+document.body.appendChild(listContainer);
+
+function renderList(list) {
+    listContainer.innerHTML = "";
+    list.forEach(item => {
+        const div = document.createElement("div");
+        div.textContent = item.name + " [" + item.tags.join(", ") + "]";
+        listContainer.appendChild(div);
+    });
+}
+
+// --- Tags-Feld beim Erstellen/Bearbeiten ---
+function createEditForm(existingItem = null) {
+    const form = document.createElement("form");
+
+    // Name-Feld
+    const nameInput = document.createElement("input");
+    nameInput.placeholder = "Name";
+    nameInput.value = existingItem ? existingItem.name : "";
+    form.appendChild(nameInput);
+
+    // Tags-Feld
+    const tagInput = document.createElement("input");
+    tagInput.placeholder = "Tags (max. 5, durch Kommas getrennt)";
+    tagInput.className = "tag-input";
+    tagInput.value = existingItem ? existingItem.tags.join(", ") : "";
+    form.appendChild(tagInput);
+
+    // Submit
+    const submitBtn = document.createElement("button");
+    submitBtn.textContent = "Speichern";
+    form.appendChild(submitBtn);
+
+    form.addEventListener("submit", e => {
+        e.preventDefault();
+        let tags = tagInput.value.split(",").map(t => t.trim()).filter(t => t);
+        if (tags.length > 5) {
+            alert("Maximal 5 Tags erlaubt!");
+            return;
+        }
+
+        const newItem = {
+            name: nameInput.value,
+            type: existingItem ? existingItem.type : "shortcut",
+            tags: tags
+        };
+
+        if (existingItem) {
+            // Item aktualisieren
+            Object.assign(existingItem, newItem);
+        } else {
+            items.push(newItem);
+        }
+
+        renderList(items);
+        form.remove();
+    });
+
+    document.body.appendChild(form);
+}
+
+// --- Test: Erstellen Button ---
+const createBtn = document.createElement("button");
+createBtn.textContent = "Neuer Kurzbefehl / Ordner";
+createBtn.addEventListener("click", () => createEditForm());
+document.body.appendChild(createBtn);
+
+// Initial rendern
+renderList(items);
