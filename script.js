@@ -768,7 +768,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = lastInput.parentNode;
 
     const label = document.createElement("label");
-    label.textContent = "Tags (Min. 5 und durch Komma getrennt)";
+    label.textContent = "Tags (Max. 5 und durch Komma getrennt)";
     label.style.display = "block";
     label.style.marginTop = "10px";
     label.style.color = "white";
