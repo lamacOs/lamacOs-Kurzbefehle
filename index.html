@@ -1,6 +1,57 @@
 <!doctype html>
 <html lang="de">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blaue Wörter mit Countdown</title>
+<style>
+  .clickable {
+    color: blue;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  #popup {
+    display: none;
+    margin-top: 20px;
+    padding: 10px;
+    border: 2px solid #0000ff;
+    background-color: #e0f0ff;
+    width: fit-content;
+  }
+</style>
+</head>
+<body>
+
+<p>Bitte lies unsere<span class="clickable" id="showText">Datenschutzerklärung</span>, !</p>
+
+<div id="popup">
+  <span id="popupText">Alle hochgeladenen Kurzbefehle sind öffentlich verfügbar und können durch das herunterladen derselben in Besitz genommen werden. Auch Ordner sind öffentlich verfügbar und nutzbar. Gesperrte Ordner fragen bei allen außer dem Besitzer dem alle Rechte an der Seite vorbehalten sind der Seite nach dem Passwort.</span>
+  <br>
+  <span id="countdown">10</span> Sekunden verbleiben
+</div>
+
+<script>
+  const clickable = document.getElementById("showText");
+  const popup = document.getElementById("popup");
+  const countdownElem = document.getElementById("countdown");
+  let timer;
+
+  clickable.addEventListener("click", () => {
+    let timeLeft = 10; // 10 Sekunden
+    countdownElem.textContent = timeLeft;
+    popup.style.display = "block";
+
+    clearInterval(timer); // Falls der Benutzer schnell nochmal klickt
+    timer = setInterval(() => {
+      timeLeft--;
+      countdownElem.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        popup.style.display = "none";
+      }
+    }, 1000);
+  });
+</script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>lamacOs — Kurzbefehle</title>
@@ -10,7 +61,8 @@
   <div class="app">
     <header>
       <div class="title">lamacOs Kurzbefehle</div>
-  <p>Dies ist eine iOS Website, um iOS Kurzbefehle mit anderen zu teilen, sie in Ordnern zu Ordnen oder Ordner zu sperren.</p>
+  <p>!Dies ist eine iOS Website, um iOS Kurzbefehle mit anderen zu teilen, sie in Ordnern zu Ordnen oder Ordner zu sperren.!</p>
+      
       <div style="display:flex;gap:8px;align-items:center;">
         <div class="user-icon" id="userIcon" title="Benutzerprofil">👤</div>
         <div class="plus" id="plusBtn" title="Neu ➕">+</div>
