@@ -94,3 +94,27 @@ textarea{min-height:90px;resize:vertical}
 .small{font-size:13px;color:var(--muted)}
 footer{margin-top:8px;color:var(--muted);font-size:13px}
 .admin-pill{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);margin-left:8px;font-weight:700}
+#xmas-gift {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  font-size: 30px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s;
+  z-index: 9999;
+}
+
+#xmas-gift:hover {
+  transform: scale(1.2);
+}
+
+#snow-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+}
