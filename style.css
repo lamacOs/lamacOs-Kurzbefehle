@@ -105,6 +105,17 @@ footer{margin-top:8px;color:var(--muted);font-size:13px}
   z-index: 9999;
 }
 
+#xmas-gift {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  font-size: 30px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s;
+  z-index: 9999;
+}
+
 #xmas-gift:hover {
   transform: scale(1.2);
 }
@@ -113,8 +124,8 @@ footer{margin-top:8px;color:var(--muted);font-size:13px}
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 9998;
 }
