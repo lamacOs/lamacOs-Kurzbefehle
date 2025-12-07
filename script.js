@@ -749,12 +749,14 @@ window.openFolder = openFolder;
 window.hideDialog = hideDialog;
 window.openFolderMenuAtElement = openFolderMenuAtElement;
 window.openShortcutMenuAtElement = openShortcutMenuAtElement;
+// --- Xmas Gift Snow Effect ---
 const canvas = document.getElementById("snow-canvas");
 const ctx = canvas.getContext("2d");
 
+// Canvas-Größe setzen
 function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.width = document.documentElement.clientWidth;
+  canvas.height = document.documentElement.clientHeight;
 }
 resize();
 window.addEventListener("resize", resize);
@@ -784,7 +786,7 @@ function createSnow() {
 
       ctx.beginPath();
       ctx.arc(flake.x, flake.y, flake.size, 0, Math.PI * 2);
-      ctx.fillStyle = "white";
+      ctx.fillStyle = "rgba(255,255,255,1)";
       ctx.fill();
     });
 
@@ -795,12 +797,13 @@ function createSnow() {
   animate();
 }
 
-// Links- und Rechtsklick abfangen
+// Klick-Events: Links- und Rechtsklick
 const gift = document.getElementById("xmas-gift");
 gift.addEventListener("click", createSnow);
 gift.addEventListener("contextmenu", e => {
-  e.preventDefault(); // verhindert das Kontextmenü
+  e.preventDefault();
   createSnow();
 });
 
-
+// Touch-Event für iOS/Android
+gift.addEventListener("touchstart", createSnow);
