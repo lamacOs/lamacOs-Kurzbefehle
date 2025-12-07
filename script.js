@@ -762,9 +762,6 @@ resize();
 window.addEventListener("resize", resize);
 
 let flakes = [];
-
-ABER: Beim Admin Passwort kann man aktuell Fremde Kurzbefehle nicht bearbeiten usw. soll man im AdminModus ja aber können. änder das bitte.
-
 function createSnow() {
   flakes = [];
   for (let i = 0; i < 150; i++) {
