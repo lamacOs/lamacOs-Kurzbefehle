@@ -749,7 +749,6 @@ window.openFolder = openFolder;
 window.hideDialog = hideDialog;
 window.openFolderMenuAtElement = openFolderMenuAtElement;
 window.openShortcutMenuAtElement = openShortcutMenuAtElement;
-// --- Xmas Gift Snow Effect ---
 const canvas = document.getElementById("snow-canvas");
 const ctx = canvas.getContext("2d");
 
@@ -774,7 +773,7 @@ function createSnow() {
   }
 
   let active = true;
-  setTimeout(() => active = false, 3000); // Schneefall dauert 3 Sekunden
+  setTimeout(() => active = false, 3000); // Schneefall 3 Sekunden
 
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -796,4 +795,12 @@ function createSnow() {
   animate();
 }
 
-document.getElementById("xmas-gift").addEventListener("click", createSnow);
+// Links- und Rechtsklick abfangen
+const gift = document.getElementById("xmas-gift");
+gift.addEventListener("click", createSnow);
+gift.addEventListener("contextmenu", e => {
+  e.preventDefault(); // verhindert das Kontextmenü
+  createSnow();
+});
+
+
