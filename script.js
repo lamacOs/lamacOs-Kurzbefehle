@@ -92,6 +92,7 @@ function setAdminMode(on){
 function checkAdminExpiry(){
   if(adminMode && Date.now() > adminExpiresAt){
     setAdminMode(false);
+    render(); // UI aktualisieren, damit Options-Buttons bei fremden Elementen verschwinden
   }
 }
 setInterval(checkAdminExpiry, 1000);
@@ -618,6 +619,7 @@ function promptFolderPassword(f){
         setAdminMode(true);
         hideDialog();
         alert('Admin-Modus aktiviert für 30 Minuten ✅');
+        render(); // UI aktualisieren, damit Admin alle Elemente bearbeiten kann
         resolve(true);
         return;
       }
