@@ -14,9 +14,6 @@ const ADMIN_PASSWORD = "123.lamacosadminadminlamacos123";
 // admin session duration in ms (30 minutes)
 const ADMIN_DURATION_MS = 30 * 60 * 1000;
 
-// Storage key
-const STORAGE_KEY = 'lamacos.shortcuts.v1';
-
 // === Helper Functions (must be defined before use) ===
 function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,10); }
 function escapeHtml(s=''){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -26,17 +23,6 @@ function normalizeState(s){
   if(!s.folders) s.folders = [];
   if(!s.meta) s.meta = {lastUpdated:0, lastWriter:null};
   return s;
-}
-
-function loadLocal(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
-    return normalizeState(JSON.parse(raw));
-  }catch(e){
-    console.warn('loadLocal error', e);
-    return {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
-  }
 }
 
 // sha256 helper
@@ -51,11 +37,8 @@ async function sha256hex(str){
 let userId = localStorage.getItem("lamacosUserId");
 let currentUsername = '';
 
-// load state
-let state = loadLocal();
-if(!state.shortcuts) state.shortcuts = [];
-if(!state.folders) state.folders = [];
-if(!state.meta) state.meta = { lastUpdated:0, lastWriter:null };
+// Initial state - wird von Firebase befüllt
+let state = {shortcuts:[], folders:[], meta:{lastUpdated:0, lastWriter:null}};
 
 // DOM elements
 const cardGrid = document.getElementById('cardGrid');
@@ -97,12 +80,7 @@ function checkAdminExpiry(){
 }
 setInterval(checkAdminExpiry, 1000);
 
-function saveLocal(){
-  state.meta = state.meta || {};
-  state.meta.lastUpdated = Date.now();
-  state.meta.lastWriter = currentUid || 'local';
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
+// saveLocal wurde entfernt - alle Daten werden nur noch in Firebase gespeichert
 
 function setSyncStatus(txt){ if(syncStatusEl) syncStatusEl.textContent = txt; }
 
@@ -242,7 +220,6 @@ function initFirebaseAuthAndSync(){
           const localMeta = state.meta || { lastUpdated:0 };
           if(cloudMeta.lastUpdated > localMeta.lastUpdated){
             state = normalizeState(cloud);
-            saveLocal();
             render();
             setSyncStatus('Synchronisiert (Cloud übernommen)');
           } else if(cloudMeta.lastUpdated < localMeta.lastUpdated){
@@ -257,14 +234,13 @@ function initFirebaseAuthAndSync(){
           if(cloudOnce){
             const cloudMeta = cloudOnce.meta || { lastUpdated:0 };
             if(cloudMeta.lastUpdated > (state.meta?.lastUpdated || 0)){
-              state = normalizeState(cloudOnce); saveLocal(); render(); setSyncStatus('Initial sync (Cloud übernommen)');
+              state = normalizeState(cloudOnce); render(); setSyncStatus('Initial sync (Cloud übernommen)');
             } else if(cloudMeta.lastUpdated < (state.meta?.lastUpdated || 0)){
               pushStateToCloud(state).then(()=>setSyncStatus('Initial sync (Local gepusht)'));
             } else setSyncStatus('Sync ready');
           } else {
-            // Firebase ist leer – lösche lokale Daten
-            console.log("Firebase ist leer – lösche lokale Daten...");
-            localStorage.clear();
+            // Firebase ist leer – State bleibt leer
+            console.log("Firebase ist leer – starte mit leerem State");
             state = {shortcuts:[], folders:[], meta:{lastUpdated:0,lastWriter:null}};
             render();
             setSyncStatus('Sync ready (neu gestartet)');
@@ -292,7 +268,7 @@ function pushStateToCloud(s){
   toPush.meta.lastUpdated = Date.now();
   toPush.meta.lastWriter = currentUid || 'local';
   return firebaseDb.ref('lamacos_shared_state').set(toPush)
-    .then(()=>{ state.meta = toPush.meta; saveLocal(); setSyncStatus('Zuletzt synchronisiert: '+ new Date(state.meta.lastUpdated).toLocaleString()); })
+    .then(()=>{ state.meta = toPush.meta; setSyncStatus('Zuletzt synchronisiert: '+ new Date(state.meta.lastUpdated).toLocaleString()); })
     .catch(err=>{ console.warn('Push Fehler', err); setSyncStatus('Fehler beim Push'); });
 }
 
@@ -514,7 +490,6 @@ function openShortcutDialog(sc = null){
       if(target) target.items = target.items || [], target.items.push(id);
     }
 
-    saveLocal();
     if(firebaseEnabled) pushStateToCloud(state);
     render(); hideDialog();
   });
@@ -541,7 +516,6 @@ function openFolderDialog(f = null){
     } else {
       f.name = name;
     }
-    saveLocal();
     if(firebaseEnabled) pushStateToCloud(state);
     render(); hideDialog();
   });
@@ -637,7 +611,6 @@ function lockFolder(f){
   sha256hex(pw).then(hash=>{
     f.pwHash = hash;
     f.locked = true;
-    saveLocal();
     if(firebaseEnabled) pushStateToCloud(state);
     render();
   });
@@ -647,14 +620,14 @@ function unlockFolder(f){
   // admin can unlock without password
   if(adminMode){
     f.locked = false; f.pwHash = null;
-    saveLocal(); if(firebaseEnabled) pushStateToCloud(state); render();
+    if(firebaseEnabled) pushStateToCloud(state); render();
     alert('Ordner per Admin entsperrt');
     return;
   }
   const pw = prompt('Passwort zum Entsperren:');
   if(!pw) return;
   sha256hex(pw).then(hash=>{
-    if(hash === f.pwHash){ f.locked = false; saveLocal(); if(firebaseEnabled) pushStateToCloud(state); render(); }
+    if(hash === f.pwHash){ f.locked = false; if(firebaseEnabled) pushStateToCloud(state); render(); }
     else alert('Falsches Passwort');
   });
 }
@@ -662,7 +635,6 @@ function unlockFolder(f){
 function deleteFolder(folderId){
   state.folders = state.folders.filter(x=>x.id!==folderId);
   state.shortcuts.forEach(s=>{ if(s.folderId === folderId) s.folderId = null; });
-  saveLocal();
   if(firebaseEnabled) pushStateToCloud(state);
   render();
 }
@@ -676,7 +648,6 @@ function moveShortcutToFolder(scId, folderId){
     const folder = state.folders.find(f=>f.id===folderId);
     if(folder) folder.items = folder.items || [], folder.items.push(scId);
   }
-  saveLocal();
   if(firebaseEnabled) pushStateToCloud(state);
   render();
 }
@@ -702,7 +673,6 @@ function showFolderPickerForShortcut(sc){
 function deleteShortcut(scId){
   state.shortcuts = state.shortcuts.filter(s=>s.id !== scId);
   state.folders.forEach(f=> f.items = (f.items||[]).filter(i=>i!==scId));
-  saveLocal();
   if(firebaseEnabled) pushStateToCloud(state);
   render();
 }
